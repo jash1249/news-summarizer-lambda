@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>News Summarizer (Live)</title>
+<style>
+  body { font-family: system-ui, Arial; background: linear-gradient(135deg,#667eea,#764ba2); min-height:100vh; display:flex; align-items:center; justify-content:center; margin:0; padding:20px;}
+  .card { background:#fff; padding:28px; border-radius:16px; width:720px; max-width:95%; box-shadow:0 12px 40px rgba(0,0,0,.12);}
+  input[type=text]{width:100%;padding:12px;border:1px solid #e7e7e7;border-radius:8px;font-size:15px}
+  button{margin-top:12px;padding:12px;border-radius:10px;border:0;background:#5b6edd;color:#fff;font-weight:600;cursor:pointer}
+  .meta{margin-top:14px;color:#666;font-size:13px}
+  .summary{margin-top:18px;background:#f7fbff;padding:16px;border-radius:10px;border-left:4px solid #2b6cb0}
+  .error{margin-top:18px;color:#b91c1c;background:#fff0f0;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>📰 News Summarizer (Live)</h2>
+    <p class="meta">Enter any public news article URL and click Summarize.</p>
+    <input id="url" type="text" placeholder="https://www.example.com/path-to-article" />
+    <button id="go">Summarize Article</button>
+    <div id="out"></div>
+  </div>
+
+<script>
+const LAMBDA_URL = "https://26vfjlcjpxlegexigewfivw2240aiyhh.lambda-url.ap-south-1.on.aws/";  // e.g. https://ubvfvqlxvkbyl7252iylcuqqs40jovna.lambda-url.ap-south-1.on.aws/
+
+document.getElementById('go').onclick = async () => {
+  const url = document.getElementById('url').value.trim();
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+  if (!url) { alert('Enter an article URL'); return; }
+
+  document.getElementById('go').disabled = true;
+  document.getElementById('go').textContent = 'Processing...';
+
+  try {
+    const resp = await fetch(LAMBDA_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      out.innerHTML = `<div class="error"><strong>Error:</strong> ${data.error || JSON.stringify(data)}</div>`;
+    } else if (data.summary) {
+      out.innerHTML = `
+        <div class="meta"><strong>Title:</strong> ${data.title || '—'}</div>
+        <div class="summary"><strong>Summary:</strong><p>${data.summary}</p></div>
+      `;
+    } else {
+      out.innerHTML = `<div class="error"><strong>Notice:</strong> ${data.message || 'No summary returned.'}</div>`;
+    }
+  } catch (err) {
+    out.innerHTML = `<div class="error"><strong>Network/Fetch error:</strong> ${err.message}</div>`;
+  } finally {
+    document.getElementById('go').disabled = false;
+    document.getElementById('go').textContent = 'Summarize Article';
+  }
+};
+</script>
+</body>
+</html>
